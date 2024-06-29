@@ -16,11 +16,6 @@
 - Express-fileupload
 
 
-## Requisitos
-
--   Nodejs
--   npm o yarn
-
 Para iniciar el servidor:
 
 ```sh
