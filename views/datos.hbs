@@ -1,0 +1,180 @@
+<h1>Skate Park</h1>
+
+<div class="py-4">
+    <h2>Datos del perfil</h2>
+    <hr class="w-50" />
+
+    <div>
+        <form id="formUpdate" class="form-group row w-50 m-auto">
+            <div class="form-group col-12 col-sm-6">
+                <label>Email</label>
+                <input class="form-control m-auto" disabled name="email" value="" />
+            </div>
+            <div class="form-group col-12 col-sm-6">
+                <label>Nombre</label>
+                <input class="form-control m-auto" name="nombre" value="" />
+            </div>
+            <div class="form-group col-12 col-sm-6">
+                <label>Password</label>
+                <input type="password" class="form-control m-auto" name="password" value="" />
+            </div>
+            <div class="form-group col-12 col-sm-6">
+                <label>Repita la password</label>
+                <input type="password" class="form-control m-auto" name="password2" value="" />
+            </div>
+            <div class="form-group col-12 col-sm-6">
+                <label>Años de experiencia</label>
+                <input class="form-control m-auto" name="experiencia" value="" />
+            </div>
+            <div class="form-group col-12 col-sm-6">
+                <label>Especialidad</label>
+                <input class="form-control m-auto" name="especialidad" value="" />
+            </div>
+            <div class="center w-100">
+                <div class="mb-1">
+                    <button class="btn btn-primary" id="actualizarUsuario">Actualizar</button>
+                </div>
+                <div>
+                    <button class="btn btn-danger" id="eliminarUsuario">Eliminar cuenta</button>
+                </div>
+                <hr>
+                <a href="/" id="logout-link">Salir</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        window.location.href = '/login';
+    }
+
+    axios.get('/datosUser', {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    })
+        .then(({ data }) => {
+
+            const { email, nombre, password, anos_experiencia, especialidad } = data.skater;
+            document.querySelector('input[name="email"]').value = email;
+            document.querySelector('input[name="nombre"]').value = nombre;
+            document.querySelector('input[name="password"]').value = password;
+            document.querySelector('input[name="password2"]').value = password;
+            document.querySelector('input[name="experiencia"]').value = anos_experiencia;
+            document.querySelector('input[name="especialidad"]').value = especialidad;
+        })
+        .catch(e => console.log(e))
+
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const logoutLink = document.getElementById('logout-link');
+
+        logoutLink.addEventListener('click', (event) => {
+            event.preventDefault(); // Evita que el navegador siga el enlace inmediatamente
+
+            // Elimina el token del localStorage
+            localStorage.removeItem('token');
+
+            window.location.href = '/'
+        });
+    });
+</script>
+{{!-- elimnar usuario --}}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const eliminarLink = document.getElementById('eliminarUsuario');
+
+        eliminarLink.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const email = document.querySelector('input[name="email"]').value
+
+            if (!email) {
+                alert('Se requiere un email para eliminar al usuario.');
+                return;
+            }
+
+            if (confirm(`¿Estás seguro de que deseas eliminar al usuario con email ${email}?`)) {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('No se encontró el token de autenticación. Inicia sesión de nuevo.');
+                        window.location.href = '/login';
+                        return;
+                    }
+
+                    const response = await axios.delete(`/datos?email=${encodeURIComponent(email)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    alert('Usuario eliminado exitosamente.');
+                    window.location.href = '/';
+                } catch (error) {
+                    console.error('Error al eliminar el usuario:', error.response || error.message);
+
+                }
+            }
+        });
+    });
+</script>
+{{!-- actualiazr --}}
+<script>
+    // Espera a que el DOM esté completamente cargado antes de ejecutar el script
+    document.addEventListener('DOMContentLoaded', () => {
+        const formUpdate = document.getElementById('formUpdate'); // Obtiene el formulario de actualización por su ID
+        const actualizarLink = document.getElementById('actualizarUsuario'); // Obtiene el enlace de actualización por su ID
+
+        // Añade un evento click al enlace de actualización
+        actualizarLink.addEventListener('click', async (event) => {
+            event.preventDefault(); // Previene el comportamiento predeterminado del enlace
+
+            const formData = new FormData(formUpdate); // Crea un objeto FormData con los datos del formulario
+            const data = Object.fromEntries(formData.entries()); // Convierte FormData en un objeto
+
+            // Verifica que las contraseñas coincidan
+            if (data.password !== data.password2) {
+                alert('Las contraseñas no coinciden.');
+                return;
+            }
+
+            delete data.password2; // Elimina el campo password2 del objeto data
+
+            try {
+                const token = localStorage.getItem('token'); // Obtiene el token de autenticación del almacenamiento local
+                if (!token) {
+                    alert('No se encontró el token de autenticación. Inicia sesión de nuevo.');
+                    window.location.href = '/login'; // Redirige a la página de inicio de sesión si no hay token
+                    return;
+                }
+
+                // Envía una solicitud PUT al servidor para actualizar el usuario
+                const response = await axios.put('/update', data, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`, // Incluye el token en los encabezados de la solicitud
+                        'Content-Type': 'application/json' // Especifica el tipo de contenido
+                    }
+                });
+
+                console.log(response.data); // Imprime la respuesta del servidor en la consola
+                alert('Usuario actualizado exitosamente.');
+                window.location.href = '/' // Redirige a la página principal después de la actualización
+            } catch (error) {
+                console.error('Error al actualizar el usuario:', error.response || error.message); // Imprime el error en la consola
+                if (error.response && error.response.status === 404) {
+                    alert('No se encontró la ruta para actualizar el usuario. Verifica la configuración del servidor.');
+                } else if (error.response && error.response.status === 403) {
+                    alert('No autorizado.');
+                } else {
+                    alert('Error. Inténtalo de nuevo.');
+                }
+            }
+        });
+    });
+</script>
